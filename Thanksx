@@ -1,0 +1,139 @@
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+ 
+local function showImportantNotification()
+    local success, gameInfo = pcall(function()
+        return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId)
+    end)
+    local gameName = success and gameInfo.Name or "Unknown Game"
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "IMPORTANT!",
+        Text = "Game: " .. gameName .. "\nDiscord: https://discord.gg/hZsCHt5w",
+        Duration = 10
+    })
+end
+ 
+showImportantNotification()
+ 
+local function createGui()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "ElectrowareGui"
+    screenGui.Parent = PlayerGui
+ 
+    local menuFrame = Instance.new("Frame")
+    menuFrame.Parent = screenGui
+    menuFrame.BackgroundColor3 = Color3.fromRGB(147, 147, 147)
+    menuFrame.Size = UDim2.new(0, 140, 0, 151)
+    menuFrame.Position = UserInputService.TouchEnabled and UDim2.new(0.3, 0, 0.4, 0) or UDim2.new(0.454, 0, 0.416, 0)
+ 
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Parent = menuFrame
+    textLabel.BackgroundTransparency = 1
+    textLabel.Position = UDim2.new(0, 0, 0, 0)
+    textLabel.Size = UDim2.new(0, 140, 0, 20)
+    textLabel.Text = "Electroware"
+    textLabel.TextScaled = true
+    textLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+ 
+    local function createButton(position, size, text, color)
+        local button = Instance.new("TextButton")
+        button.Parent = menuFrame
+        button.Position = position
+        button.Size = size
+        button.Text = text
+        button.TextScaled = true
+        button.TextColor3 = Color3.fromRGB(0, 0, 0)
+        button.BackgroundColor3 = color or Color3.fromRGB(200, 200, 200)
+        return button
+    end
+ 
+    local freezeButton = createButton(UDim2.new(0, 0, 0.132, 0), UDim2.new(0, 140, 0, 17), "Freeze")
+    local tpToolButton = createButton(UDim2.new(0, 0, 0.291, 0), UDim2.new(0, 140, 0, 17), "TpTool")
+    local showPingButton = createButton(UDim2.new(0, 0, 0.444, 0), UDim2.new(0, 140, 0, 17), "Show Fps Ping")
+    local closeButton = createButton(UDim2.new(0.821, 0, 0.854, 0), UDim2.new(0, 25, 0, 22), "X", Color3.fromRGB(255, 100, 100))
+ 
+    closeButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+ 
+    local freezeOn = false
+    freezeButton.MouseButton1Click:Connect(function()
+        if LocalPlayer.Character then
+            local rootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if rootPart then
+                freezeOn = not freezeOn
+                rootPart.Anchored = freezeOn
+                freezeButton.Text = freezeOn and "Freeze On" or "Freeze"
+            end
+        end
+    end)
+ 
+    tpToolButton.MouseButton1Click:Connect(function()
+        local mouse = LocalPlayer:GetMouse()
+        local tool = Instance.new("Tool")
+        tool.RequiresHandle = false
+        tool.Name = "Click Teleport"
+        tool.Activated:Connect(function()
+            if mouse and mouse.Hit then
+                local pos = mouse.Hit.Position + Vector3.new(0, 2.5, 0)
+                LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(pos)
+            end
+        end)
+        tool.Parent = LocalPlayer:WaitForChild("Backpack")
+    end)
+ 
+    showPingButton.MouseButton1Click:Connect(function()
+        local ping = game:GetService("Stats").PerformanceStats.Ping:GetValueString()
+        game.StarterGui:SetCore("SendNotification", {
+            Title = "Your Ping..",
+            Text = string.format("Ping: %s", ping),
+            Duration = 5
+        })
+    end)
+ 
+    closeButton.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
+    end)
+ 
+    local dragging
+    local dragInput
+    local dragStart
+    local startPos
+ 
+    local function update(input)
+        local delta = input.Position - dragStart
+        menuFrame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+ 
+    menuFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = menuFrame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+ 
+    menuFrame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+ 
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+end
+ 
+createGui()
